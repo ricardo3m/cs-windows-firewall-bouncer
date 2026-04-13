@@ -10,16 +10,18 @@ namespace Fw
 {
     public class FirewallRule
     {
-        public int Capacity { get; } = 1000;
-        public int Length { get; set; }
-        private List<string> content = new();
+        private const int DefaultBatchSize = 1000;
+        public int Capacity { get; }
+        public int Length => content.Count;
+        private readonly HashSet<string> content = new();
         private readonly string ruleName;
         private bool stale;
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public FirewallRule()
+        public FirewallRule(int capacity = DefaultBatchSize)
         {
+            Capacity = capacity > 0 ? capacity : DefaultBatchSize;
             ruleName = "crowdsec-blocklist" + Guid.NewGuid().ToString();
             stale = false;
         }
@@ -32,7 +34,6 @@ namespace Fw
         public void AddIP(string ip)
         {
             content.Add(ip);
-            Length++;
             stale = true;
         }
         public bool RemoveIP(string ip)
@@ -41,7 +42,6 @@ namespace Fw
             var r = content.Remove(ip);
             if (r)
             {
-                Length--;
                 stale = true;
             }
             return r;
@@ -69,19 +69,23 @@ namespace Fw
 
     public class Firewall
     {
+        private const int DefaultBatchSize = 1000;
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly INetFwMgr fwManager;
         private readonly INetFwPolicy2 policy;
         private readonly List<FirewallRule> rulesBucket = new();
+        private readonly Dictionary<string, FirewallRule> ipIndex = new();
         private readonly int profiles;
+        private readonly int bucketCapacity;
 
         private readonly Dictionary<string, int> profilesDict = new Dictionary<string, int> { { "domain", 1 }, { "private", 2 }, { "public", 4 } };
 
 
 
-        public Firewall(List<string> fwprofiles)
+        public Firewall(List<string> fwprofiles, int capacity = DefaultBatchSize)
         {
+            bucketCapacity = capacity > 0 ? capacity : DefaultBatchSize;
             fwManager = (INetFwMgr)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwMgr"));
             policy = (INetFwPolicy2)Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.FwPolicy2"));
             if (fwprofiles == null || fwprofiles.Count == 0)
@@ -117,14 +121,21 @@ namespace Fw
 
         public void DeleteAllRules()
         {
+            var toDelete = new List<string>();
             foreach (INetFwRule rule in policy.Rules)
             {
                 if (rule.Name.StartsWith("crowdsec-blocklist"))
                 {
-                    Logger.Debug("Deleting rule {0}", rule.Name);
-                    policy.Rules.Remove(rule.Name);
+                    toDelete.Add(rule.Name);
                 }
             }
+            foreach (var name in toDelete)
+            {
+                Logger.Debug("Deleting rule {0}", name);
+                policy.Rules.Remove(name);
+            }
+            rulesBucket.Clear();
+            ipIndex.Clear();
         }
 
         private INetFwRule getRule(string name)
@@ -163,7 +174,7 @@ namespace Fw
         private FirewallRule findBucketForIp(string ip)
         {
             Logger.Trace("Trying to find bucket for ip {0}", ip);
-            return rulesBucket.FirstOrDefault(x => x.HasIp(ip));
+            return ipIndex.TryGetValue(ip, out var bucket) ? bucket : null;
         }
 
         private FirewallRule findAvailableBucket()
@@ -173,7 +184,7 @@ namespace Fw
             {
                 return rule;
             }
-            var newRule = new FirewallRule();
+            var newRule = new FirewallRule(bucketCapacity);
             Logger.Info("Creating new rule {0}", newRule.GetName());
             CreateRule(newRule.GetName());
             rulesBucket.Add(newRule);
@@ -185,24 +196,27 @@ namespace Fw
         {
             foreach (var decision in decisions.Deleted)
             {
-                var bucket = findBucketForIp(decision.value);
-                if (bucket == null)
+                if (!ipIndex.TryGetValue(decision.value, out var bucket))
                 {
                     Logger.Trace("was not able to find a bucket for deleting {0}", decision.value);
                     continue;
                 }
-                bucket.RemoveIP(decision.value);
+                if (bucket.RemoveIP(decision.value))
+                {
+                    ipIndex.Remove(decision.value);
+                }
             }
 
             foreach (var decision in decisions.New)
             {
-                if (findBucketForIp(decision.value) != null)
+                if (ipIndex.ContainsKey(decision.value))
                 {
                     Logger.Trace("{0} already exists in a bucket", decision.value);
                     continue;
                 }
                 var bucket = findAvailableBucket();
                 bucket.AddIP(decision.value);
+                ipIndex[decision.value] = bucket;
             }
 
             List<FirewallRule> toDelete = new();

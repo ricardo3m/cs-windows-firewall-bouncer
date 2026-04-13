@@ -14,6 +14,7 @@ namespace Cfg
         public string LogMedia { get; set; }
         public string LogDir { get; set; }
         public List<string> FwProfiles { get; set; }
+        public int BatchSize { get; set; }
 
 
     }
