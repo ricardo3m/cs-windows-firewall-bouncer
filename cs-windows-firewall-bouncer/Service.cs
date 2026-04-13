@@ -41,7 +41,9 @@ namespace cs_windows_firewall_bouncer
         {
             Logger.Debug("Onstop service");
             cts?.Cancel();
-            try { runTask?.Wait(TimeSpan.FromSeconds(10)); } catch { }
+            try { runTask?.Wait(TimeSpan.FromSeconds(10)); }
+            catch (AggregateException ex) { Logger.Debug("Run task faulted during stop: {0}", ex.InnerException?.Message ?? ex.Message); }
+            catch (Exception ex) { Logger.Debug("Run task exception during stop: {0}", ex.Message); }
             Firewall firewall = new(null);
             firewall.DeleteAllRules();
             Logger.Debug("Onstop service end");
