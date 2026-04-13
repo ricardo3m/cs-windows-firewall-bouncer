@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Api;
@@ -31,25 +32,33 @@ namespace Manager
             Logger.Debug("Firewall is enabled for profile {0}", firewall.GetCurrentProfile());
         }
 
-        public async Task<bool> Run()
+        public async Task Run(CancellationToken ct = default)
         {
             var intervalms = this.interval * 1000;
             var startup = true;
-            while (true)
+            while (!ct.IsCancellationRequested)
             {
-                var decisions = await apiClient.GetDecisions(startup);
-                if (decisions == null)
+                try
                 {
-                    Logger.Error("Could not get decisions from LAPI. (startup: {0})", startup);
-                    Task.Delay(intervalms).Wait();
-                    continue;
+                    var decisions = await apiClient.GetDecisions(startup, ct);
+                    if (decisions == null)
+                    {
+                        Logger.Error("Could not get decisions from LAPI. (startup: {0})", startup);
+                    }
+                    else
+                    {
+                        if (startup)
+                        {
+                            startup = false;
+                        }
+                        firewall.UpdateRule(decisions);
+                    }
+                    await Task.Delay(intervalms, ct);
                 }
-                if (startup)
+                catch (OperationCanceledException)
                 {
-                    startup = false;
+                    break;
                 }
-                firewall.UpdateRule(decisions);
-                Task.Delay(intervalms).Wait();
             }
         }
     }

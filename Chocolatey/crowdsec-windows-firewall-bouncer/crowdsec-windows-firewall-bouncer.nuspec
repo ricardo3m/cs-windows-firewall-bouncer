@@ -12,7 +12,7 @@
     <title>CrowdSec Windows Firewall Bouncer</title>
     <authors>CrowdSecurity</authors>
     <projectUrl>https://crowdsec.net/</projectUrl>
-    <copyright>2022, CrowdSec</copyright>
+    <copyright>2024, CrowdSec</copyright>
     <iconUrl>https://cdn.statically.io/gh/crowdsecurity/cs-windows-firewall-bouncer/main/assets/logo.png</iconUrl>
     <licenseUrl>https://github.com/crowdsecurity/cs-windows-firewall-bouncer/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
@@ -36,7 +36,7 @@
     <!-- =============================== -->
 
     <dependencies>
-      <dependency id="dotnet-6.0-runtime" version="6.0.0" />
+      <dependency id="dotnet-8.0-runtime" version="8.0.0" />
       <dependency id="chocolatey-core.extension" version="1.1.0" />
     </dependencies>
   </metadata>

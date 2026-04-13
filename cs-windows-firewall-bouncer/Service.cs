@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
 using System.ServiceProcess;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Cfg;
@@ -19,8 +14,11 @@ namespace cs_windows_firewall_bouncer
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
-        BouncerConfig config;
-        DecisionsManager mgr;
+        private readonly BouncerConfig config;
+        private DecisionsManager mgr;
+        private CancellationTokenSource cts;
+        private Task runTask;
+
         public Service(BouncerConfig config)
         {
             Logger.Debug("Creating new service object");
@@ -32,16 +30,18 @@ namespace cs_windows_firewall_bouncer
         protected override void OnStart(string[] args)
         {
             Logger.Debug("Onstart service");
+            cts = new CancellationTokenSource();
             mgr = new(config);
-            var _ = mgr.Run();
+            runTask = mgr.Run(cts.Token);
             base.OnStart(args);
             Logger.Debug("Onstart service end");
-
         }
 
         protected override void OnStop()
         {
             Logger.Debug("Onstop service");
+            cts?.Cancel();
+            try { runTask?.Wait(TimeSpan.FromSeconds(10)); } catch { }
             Firewall firewall = new(null);
             firewall.DeleteAllRules();
             Logger.Debug("Onstop service end");
