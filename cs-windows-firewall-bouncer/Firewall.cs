@@ -10,7 +10,7 @@ namespace Fw
 {
     public class FirewallRule
     {
-        private const int DefaultBatchSize = 1000;
+        private const int DefaultBatchSize = 10000;
         public int Capacity { get; }
         public int Length => content.Count;
         private readonly HashSet<string> content = new();
@@ -69,7 +69,7 @@ namespace Fw
 
     public class Firewall
     {
-        private const int DefaultBatchSize = 1000;
+        private const int DefaultBatchSize = 10000;
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly INetFwMgr fwManager;
