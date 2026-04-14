@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ServiceProcess;
+using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 
@@ -12,6 +13,8 @@ namespace cs_windows_firewall_bouncer
     class Program
     {
         private static readonly string[] AllowedFWProfiles = new string[] { "domain", "private", "public" };
+        private static CancellationTokenSource consoleCts;
+
         public class Options
         {
             [Option('c', "config", Required = false, Default = "C:\\ProgramData\\CrowdSec\\config\\bouncers\\cs-windows-firewall-bouncer.yaml", HelpText = "Path to the config file")]
@@ -25,33 +28,21 @@ namespace cs_windows_firewall_bouncer
             public bool Trace { get; set; }
         }
 
-        static private NLog.LogLevel GetLogLevel(string name)
+        private static NLog.LogLevel GetLogLevel(string name) => name.ToLowerInvariant() switch
         {
-            switch (name)
-            {
-                case "trace":
-                    return NLog.LogLevel.Trace;
-                case "debug":
-                    return NLog.LogLevel.Debug;
-                case "info":
-                    return NLog.LogLevel.Info;
-                case "warn":
-                    return NLog.LogLevel.Warn;
-                case "error":
-                    return NLog.LogLevel.Error;
-                case "fatal":
-                    return NLog.LogLevel.Fatal;
-                default:
-                    return NLog.LogLevel.Info;
-            }
-        }
+            "trace" => NLog.LogLevel.Trace,
+            "debug" => NLog.LogLevel.Debug,
+            "info"  => NLog.LogLevel.Info,
+            "warn"  => NLog.LogLevel.Warn,
+            "error" => NLog.LogLevel.Error,
+            "fatal" => NLog.LogLevel.Fatal,
+            _       => NLog.LogLevel.Info,
+        };
 
         protected static void consoleHandler(object sender, ConsoleCancelEventArgs args)
         {
-            Firewall firewall = new(null);
-            Console.WriteLine("Deleting all firewall rules.");
-            firewall.DeleteAllRules();
-            Console.WriteLine("Done deleting all firewall rules.");
+            args.Cancel = true;
+            consoleCts?.Cancel();
         }
 
         static async Task Main(string[] args)
@@ -59,6 +50,7 @@ namespace cs_windows_firewall_bouncer
             BouncerConfig config;
             Options opts;
 
+            consoleCts = new CancellationTokenSource();
             Console.CancelKeyPress += new ConsoleCancelEventHandler(consoleHandler);
 
             var result = Parser.Default.ParseArguments<Options>(args).WithNotParsed(errors =>
@@ -89,7 +81,7 @@ namespace cs_windows_firewall_bouncer
             var loggerConfig = new NLog.Config.LoggingConfiguration();
             var logLevel = NLog.LogLevel.Info;
 
-            if (config.config.LogLevel != "")
+            if (!string.IsNullOrEmpty(config.config.LogLevel))
             {
                 logLevel = GetLogLevel(config.config.LogLevel);
             }
@@ -106,7 +98,7 @@ namespace cs_windows_firewall_bouncer
 
             if (config.config.LogMedia == "file" || !Environment.UserInteractive)
             {
-                if (config.config.LogDir == "")
+                if (string.IsNullOrEmpty(config.config.LogDir))
                 {
                     config.config.LogDir = "C:\\ProgramData\\CrowdSec\\log";
                 }
@@ -132,10 +124,15 @@ namespace cs_windows_firewall_bouncer
 
             if (opts.RemoveAll)
             {
-                Firewall firewall = new(null);
-                Logger.Info("Deleting all firewall rules.");
-                firewall.DeleteAllRules();
-                Logger.Info("Done deleting all firewall rules.");
+                try
+                {
+                    Firewall firewall = new(null);
+                    Logger.Info("Deleted all firewall rules.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to delete firewall rules: {0}", ex.Message);
+                }
                 return;
             }
 
@@ -169,8 +166,18 @@ namespace cs_windows_firewall_bouncer
             {
                 Logger.Info("Running in interactive mode");
                 DecisionsManager mgr = new(config);
-                await mgr.Run();
+                await mgr.Run(consoleCts.Token);
+                try
+                {
+                    Firewall firewall = new(null);
+                    Logger.Info("Deleted all firewall rules.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to clean up firewall rules: {0}", ex.Message);
+                }
             }
+            consoleCts?.Dispose();
         }
     }
 }

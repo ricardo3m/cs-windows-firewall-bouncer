@@ -18,7 +18,16 @@ namespace bouncer_register_custom_action
             p.StartInfo.CreateNoWindow = true;
             p.Start();
             string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit();
+            bool exited = p.WaitForExit(30000);
+            if (!exited)
+            {
+                p.Kill();
+                throw new TimeoutException("cscli.exe did not finish within 30 seconds");
+            }
+            if (p.ExitCode != 0)
+            {
+                throw new Exception(string.Format("cscli.exe exited with code {0}. Output: {1}", p.ExitCode, output));
+            }
             return output;
         }
 

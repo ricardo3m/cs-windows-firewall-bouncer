@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Api
 {
@@ -22,52 +25,61 @@ namespace Api
 
     public class DecisionStreamResponse
     {
-        [JsonProperty("new")]
+        [JsonPropertyName("new")]
         public List<Decision> New { get; set; }
-        [JsonProperty("deleted")]
+        [JsonPropertyName("deleted")]
         public List<Decision> Deleted { get; set; }
     }
 
 
     public class ApiClient
     {
-        private readonly HttpClient client = new HttpClient();
+        // HttpClient is intentionally kept as a long-lived instance per
+        // https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
+        private readonly HttpClient client = new HttpClient() { Timeout = TimeSpan.FromSeconds(30) };
         private readonly string apiEndpoint;
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         public ApiClient(string apiKey, string apiEndpoint)
         {
-            if (apiEndpoint.EndsWith('/'))
-            {
-                this.apiEndpoint = apiEndpoint;
-            }
-            else
-            {
-                this.apiEndpoint = apiEndpoint + '/';
-            }
+            this.apiEndpoint = apiEndpoint.EndsWith('/') ? apiEndpoint : apiEndpoint + '/';
+            var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
             client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-            client.DefaultRequestHeaders.Add("User-Agent", "cs-windows-fw-bouncer/0.0.5");
+            client.DefaultRequestHeaders.Add("User-Agent", $"cs-windows-fw-bouncer/{version}");
         }
 
-        public async Task<DecisionStreamResponse> GetDecisions(bool startup)
+        public async Task<DecisionStreamResponse> GetDecisions(bool startup, CancellationToken ct = default)
         {
             Logger.Debug("starting GetDecisions");
-            HttpResponseMessage response;
+            DecisionStreamResponse decisions;
             try
             {
-                var uri = apiEndpoint + "v1/decisions/stream?startup=" + startup.ToString().ToLower() + "&scope=ip,range";
+                var uri = apiEndpoint + "v1/decisions/stream?startup=" + startup.ToString().ToLower() + "&scopes=Ip,Range";
                 Logger.Trace("requesting {0}", uri);
-                response = await client.GetAsync(uri);
-                response.EnsureSuccessStatusCode();
+                var response = await client.GetAsync(uri, ct);
+                var body = await response.Content.ReadAsStringAsync(ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Error("LAPI returned HTTP {0}: {1}", (int)response.StatusCode, body);
+                    return null;
+                }
+                Logger.Trace("LAPI response: {0}", body);
+                decisions = JsonSerializer.Deserialize<DecisionStreamResponse>(body, JsonOptions);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 Logger.Error("Could not get decisions: {0}", ex.Message);
                 return null;
             }
-            var body = await response.Content.ReadAsStringAsync();
-            Logger.Trace("LAPI response: {0}", body);
-            var decisions = JsonConvert.DeserializeObject<DecisionStreamResponse>(body);
+            if (decisions == null)
+            {
+                decisions = new DecisionStreamResponse();
+            }
             if (decisions.New == null)
             {
                 decisions.New = new List<Decision>();
