@@ -62,3 +62,9 @@ jobs:
           shell: powershell
           run: |
             dotnet test ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer-tests\\cs-windows-firewall-bouncer-tests.csproj --configuration Release --logger trx
+        - name: Upload artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: cs-windows-firewall-bouncer
+            path: cs-windows-firewall-bouncer\bin\**\net8.0-windows\
+            if-no-files-found: error
