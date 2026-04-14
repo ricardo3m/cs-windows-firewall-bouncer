@@ -209,6 +209,11 @@ namespace Fw
 
             foreach (var decision in decisions.New)
             {
+                if (decision.type != "ban")
+                {
+                    Logger.Debug("Skipping decision for {0} with unsupported type '{1}'", decision.value, decision.type);
+                    continue;
+                }
                 if (ipIndex.ContainsKey(decision.value))
                 {
                     Logger.Trace("{0} already exists in a bucket", decision.value);

@@ -55,7 +55,7 @@ namespace Api
             HttpResponseMessage response;
             try
             {
-                var uri = apiEndpoint + "v1/decisions/stream?startup=" + startup.ToString().ToLower() + "&scope=ip,range";
+                var uri = apiEndpoint + "v1/decisions/stream?startup=" + startup.ToString().ToLower() + "&scopes=Ip,Range";
                 Logger.Trace("requesting {0}", uri);
                 response = await client.GetAsync(uri, ct);
                 response.EnsureSuccessStatusCode();
