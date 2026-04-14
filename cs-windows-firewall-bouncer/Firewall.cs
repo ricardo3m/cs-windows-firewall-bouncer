@@ -196,6 +196,11 @@ namespace Fw
         {
             foreach (var decision in decisions.Deleted)
             {
+                if (decision == null || string.IsNullOrEmpty(decision.value))
+                {
+                    Logger.Debug("Skipping deleted decision with null/empty value");
+                    continue;
+                }
                 if (!ipIndex.TryGetValue(decision.value, out var bucket))
                 {
                     Logger.Trace("was not able to find a bucket for deleting {0}", decision.value);
@@ -209,6 +214,11 @@ namespace Fw
 
             foreach (var decision in decisions.New)
             {
+                if (decision == null || string.IsNullOrEmpty(decision.value))
+                {
+                    Logger.Debug("Skipping new decision with null/empty value");
+                    continue;
+                }
                 if (decision.type != "ban")
                 {
                     Logger.Debug("Skipping decision for {0} with unsupported type '{1}'", decision.value, decision.type);
@@ -251,9 +261,16 @@ namespace Fw
                         Logger.Warn("Rule {0} not found in firewall, skipping update", rule.GetName());
                         continue;
                     }
-                    fwRule.RemoteAddresses = content;
-                    fwRule.Enabled = true;
-                    rule.SetStale(false);
+                    try
+                    {
+                        fwRule.RemoteAddresses = content;
+                        fwRule.Enabled = true;
+                        rule.SetStale(false);
+                    }
+                    catch (COMException ex)
+                    {
+                        Logger.Error("Failed to update firewall rule {0}: {1}", rule.GetName(), ex.Message);
+                    }
                 }
             }
             foreach (var fwRule in toDelete)

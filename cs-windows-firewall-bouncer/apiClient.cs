@@ -36,7 +36,7 @@ namespace Api
     {
         // HttpClient is intentionally kept as a long-lived instance per
         // https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
-        private readonly HttpClient client = new HttpClient();
+        private readonly HttpClient client = new HttpClient() { Timeout = TimeSpan.FromSeconds(30) };
         private readonly string apiEndpoint;
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
