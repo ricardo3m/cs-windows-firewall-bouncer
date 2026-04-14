@@ -124,8 +124,15 @@ namespace cs_windows_firewall_bouncer
 
             if (opts.RemoveAll)
             {
-                Firewall firewall = new(null);
-                Logger.Info("Deleted all firewall rules.");
+                try
+                {
+                    Firewall firewall = new(null);
+                    Logger.Info("Deleted all firewall rules.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to delete firewall rules: {0}", ex.Message);
+                }
                 return;
             }
 
@@ -160,8 +167,15 @@ namespace cs_windows_firewall_bouncer
                 Logger.Info("Running in interactive mode");
                 DecisionsManager mgr = new(config);
                 await mgr.Run(consoleCts.Token);
-                Firewall firewall = new(null);
-                Logger.Info("Deleted all firewall rules.");
+                try
+                {
+                    Firewall firewall = new(null);
+                    Logger.Info("Deleted all firewall rules.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed to clean up firewall rules: {0}", ex.Message);
+                }
             }
             consoleCts?.Dispose();
         }

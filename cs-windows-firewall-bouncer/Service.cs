@@ -45,7 +45,14 @@ namespace cs_windows_firewall_bouncer
             catch (AggregateException ex) { Logger.Debug("Run task faulted during stop: {0}", ex.InnerException?.Message ?? ex.Message); }
             catch (Exception ex) { Logger.Debug("Run task exception during stop: {0}", ex.Message); }
             cts?.Dispose();
-            Firewall firewall = new(null);
+            try
+            {
+                Firewall firewall = new(null);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to clean up firewall rules during stop: {0}", ex.Message);
+            }
             Logger.Debug("Onstop service end");
         }
     }

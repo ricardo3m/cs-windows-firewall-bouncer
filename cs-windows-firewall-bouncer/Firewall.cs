@@ -116,7 +116,14 @@ namespace Fw
         public void DeleteRule(string name)
         {
             Logger.Info("Deleting FW rule {0}", name);
-            policy.Rules.Remove(name);
+            try
+            {
+                policy.Rules.Remove(name);
+            }
+            catch (COMException ex)
+            {
+                Logger.Warn("Could not delete FW rule {0}: {1}", name, ex.Message);
+            }
         }
 
         public void DeleteAllRules()
@@ -132,7 +139,14 @@ namespace Fw
             foreach (var name in toDelete)
             {
                 Logger.Debug("Deleting rule {0}", name);
-                policy.Rules.Remove(name);
+                try
+                {
+                    policy.Rules.Remove(name);
+                }
+                catch (COMException ex)
+                {
+                    Logger.Warn("Could not delete rule {0}: {1}", name, ex.Message);
+                }
             }
             rulesBucket.Clear();
             ipIndex.Clear();
