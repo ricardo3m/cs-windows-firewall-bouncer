@@ -7,13 +7,16 @@ namespace bouncer_register_custom_action
 {
     public static class CustomActions
     {
+        private static readonly string CscliPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "CrowdSec", "cscli.exe");
+
         private static string registerBouncer(string bouncerPrefix)
         {
             string suffix = DateTime.Now.ToString("yyyyMMddHHmmssffff");
             Process p = new Process();
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
-            p.StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "CrowdSec", "cscli.exe");
+            p.StartInfo.FileName = CscliPath;
             p.StartInfo.Arguments = string.Format("-oraw bouncers add {0}{1}", bouncerPrefix, suffix);
             p.StartInfo.CreateNoWindow = true;
             p.Start();

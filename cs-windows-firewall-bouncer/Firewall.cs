@@ -122,20 +122,16 @@ namespace Fw
             }
             catch (COMException ex)
             {
-                Logger.Warn("Could not delete FW rule {0}: {1}", name, ex.Message);
+                Logger.Warn(ex, "Could not delete FW rule {0}", name);
             }
         }
 
         public void DeleteAllRules()
         {
-            var toDelete = new List<string>();
-            foreach (INetFwRule rule in policy.Rules)
-            {
-                if (rule.Name.StartsWith("crowdsec-blocklist"))
-                {
-                    toDelete.Add(rule.Name);
-                }
-            }
+            var toDelete = policy.Rules.Cast<INetFwRule>()
+                .Where(r => r.Name.StartsWith("crowdsec-blocklist"))
+                .Select(r => r.Name)
+                .ToList();
             foreach (var name in toDelete)
             {
                 Logger.Debug("Deleting rule {0}", name);
@@ -145,7 +141,7 @@ namespace Fw
                 }
                 catch (COMException ex)
                 {
-                    Logger.Warn("Could not delete rule {0}: {1}", name, ex.Message);
+                    Logger.Warn(ex, "Could not delete rule {0}", name);
                 }
             }
             rulesBucket.Clear();
@@ -163,7 +159,7 @@ namespace Fw
             }
             catch (COMException ex)
             {
-                Logger.Debug("Could not find rule {0}: {1}", name, ex.Message);
+                Logger.Debug(ex, "Could not find rule {0}", name);
             }
             return null;
         }
@@ -293,7 +289,7 @@ namespace Fw
                     }
                     catch (COMException ex)
                     {
-                        Logger.Error("Failed to update firewall rule {0}: {1}", rule.GetName(), ex.Message);
+                        Logger.Error(ex, "Failed to update firewall rule {0}", rule.GetName());
                     }
                 }
             }
