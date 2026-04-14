@@ -125,9 +125,7 @@ namespace cs_windows_firewall_bouncer
             if (opts.RemoveAll)
             {
                 Firewall firewall = new(null);
-                Logger.Info("Deleting all firewall rules.");
-                firewall.DeleteAllRules();
-                Logger.Info("Done deleting all firewall rules.");
+                Logger.Info("Deleted all firewall rules.");
                 return;
             }
 
@@ -163,8 +161,7 @@ namespace cs_windows_firewall_bouncer
                 DecisionsManager mgr = new(config);
                 await mgr.Run(consoleCts.Token);
                 Firewall firewall = new(null);
-                Logger.Info("Deleting all firewall rules.");
-                firewall.DeleteAllRules();
+                Logger.Info("Deleted all firewall rules.");
             }
         }
     }

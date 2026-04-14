@@ -72,6 +72,10 @@ namespace Api
             var body = await response.Content.ReadAsStringAsync(ct);
             Logger.Trace("LAPI response: {0}", body);
             var decisions = JsonSerializer.Deserialize<DecisionStreamResponse>(body, JsonOptions);
+            if (decisions == null)
+            {
+                decisions = new DecisionStreamResponse();
+            }
             if (decisions.New == null)
             {
                 decisions.New = new List<Decision>();

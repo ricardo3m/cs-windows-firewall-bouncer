@@ -161,7 +161,7 @@ namespace Fw
 
         public bool RuleIsEnabled(string name)
         {
-            Logger.Trace("checking if rule {0} is enabled");
+            Logger.Trace("checking if rule {0} is enabled", name);
             var rule = getRule(name);
 
             if (rule != null)
@@ -212,6 +212,11 @@ namespace Fw
                 if (decision.type != "ban")
                 {
                     Logger.Debug("Skipping decision for {0} with unsupported type '{1}'", decision.value, decision.type);
+                    continue;
+                }
+                if (decision.simulated)
+                {
+                    Logger.Debug("Skipping simulated decision for {0}", decision.value);
                     continue;
                 }
                 if (ipIndex.ContainsKey(decision.value))

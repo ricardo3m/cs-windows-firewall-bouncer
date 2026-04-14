@@ -110,5 +110,15 @@ namespace Tests
 
             Assert.True(result.New[0].simulated);
         }
+
+        [Fact]
+        public void Deserialize_NullJsonLiteral_ReturnsNull()
+        {
+            var json = "null";
+
+            var result = JsonSerializer.Deserialize<DecisionStreamResponse>(json, JsonOptions);
+
+            Assert.Null(result);
+        }
     }
 }

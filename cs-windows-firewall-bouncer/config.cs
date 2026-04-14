@@ -43,7 +43,7 @@ namespace Cfg
             if (string.IsNullOrWhiteSpace(config.ApiKey))
                 throw new ArgumentException("api_key must be set in configuration");
             if (config.UpdateFrequency < 0)
-                throw new ArgumentException("update_frequency must be a positive number");
+                throw new ArgumentException("update_frequency cannot be negative");
         }
     }
 

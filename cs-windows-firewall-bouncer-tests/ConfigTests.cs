@@ -113,6 +113,17 @@ update_frequency: -1
         }
 
         [Fact]
+        public void ZeroUpdateFrequency_IsAllowed()
+        {
+            var config = LoadFromYaml(@"
+api_endpoint: http://localhost:8080
+api_key: testkey
+update_frequency: 0
+");
+            Assert.Equal(0, config.config.UpdateFrequency);
+        }
+
+        [Fact]
         public void FwProfiles_AreDeserializedAsList()
         {
             var config = LoadFromYaml(@"
