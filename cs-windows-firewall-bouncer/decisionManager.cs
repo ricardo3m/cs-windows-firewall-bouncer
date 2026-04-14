@@ -59,6 +59,11 @@ namespace Manager
                 {
                     break;
                 }
+                catch (Exception ex)
+                {
+                    Logger.Error("Unexpected error in decisions loop, will retry: {0}", ex.Message);
+                    try { await Task.Delay(intervalms, ct); } catch (OperationCanceledException) { break; }
+                }
             }
         }
     }

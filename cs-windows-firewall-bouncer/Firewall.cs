@@ -241,6 +241,11 @@ namespace Fw
                 else
                 {
                     var fwRule = getRule(rule.GetName());
+                    if (fwRule == null)
+                    {
+                        Logger.Warn("Rule {0} not found in firewall, skipping update", rule.GetName());
+                        continue;
+                    }
                     fwRule.RemoteAddresses = content;
                     fwRule.Enabled = true;
                     rule.SetStale(false);
