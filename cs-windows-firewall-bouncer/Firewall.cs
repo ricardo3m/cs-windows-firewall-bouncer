@@ -206,6 +206,16 @@ namespace Fw
         }
 
 
+        private void LogIndexState()
+        {
+            if (!Logger.IsTraceEnabled) return;
+            Logger.Trace("Index state: {0} IP(s) tracked across {1} bucket(s)", ipIndex.Count, rulesBucket.Count);
+            foreach (var bucket in rulesBucket)
+            {
+                Logger.Trace("  Bucket {0} ({1}/{2}): [{3}]", bucket.GetName(), bucket.Length, bucket.Capacity, bucket.ToString());
+            }
+        }
+
         public void UpdateRule(DecisionStreamResponse decisions)
         {
             foreach (var decision in decisions.Deleted)
@@ -291,6 +301,7 @@ namespace Fw
             {
                 rulesBucket.Remove(fwRule);
             }
+            LogIndexState();
         }
 
         public void CreateRule(string name)
