@@ -83,7 +83,12 @@ stages:
               --user $(CodeSigningUser) --secret '$(CodeSigningPassword)'
             displayName: "Sign bundle"
           - pwsh: |
-              $build_version=($env:BUILD_SOURCEBRANCH.Split('/')[2].Substring(1))
+              $sourceBranch = $env:BUILD_SOURCEBRANCH
+              if ($sourceBranch -notmatch '^refs/tags/v[\d]+\.[\d]+\.[\d]+([-+][a-zA-Z0-9.\-]+)?$') {
+                Write-Error "Unexpected BUILD_SOURCEBRANCH format: '$sourceBranch'"
+                exit 1
+              }
+              $build_version=($sourceBranch.Split('/')[2].Substring(1))
               .\make_choco.ps1
               Write-Host  "##vso[task.setvariable variable=BuildVersion;isOutput=true]$build_version"
             displayName: "Build chocolatey package"
