@@ -90,16 +90,23 @@ namespace Manager
 
         private async Task ConsumeAsync(CancellationToken ct)
         {
-            await foreach (var decisions in decisionsChannel.Reader.ReadAllAsync(ct))
+            try
             {
-                try
+                await foreach (var decisions in decisionsChannel.Reader.ReadAllAsync(ct))
                 {
-                    firewall.UpdateRule(decisions);
+                    try
+                    {
+                        firewall.UpdateRule(decisions);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Unexpected error applying firewall rules");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Unexpected error applying firewall rules");
-                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                Logger.Debug("Consumer stopped due to cancellation");
             }
         }
     }

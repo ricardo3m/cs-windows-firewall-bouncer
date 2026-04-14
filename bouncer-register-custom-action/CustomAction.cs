@@ -13,7 +13,7 @@ namespace bouncer_register_custom_action
         private static string registerBouncer(string bouncerPrefix)
         {
             string suffix = DateTime.Now.ToString("yyyyMMddHHmmssffff");
-            Process p = new Process();
+            using Process p = new Process();
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.FileName = CscliPath;

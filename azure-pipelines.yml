@@ -84,7 +84,7 @@ stages:
             displayName: "Sign bundle"
           - pwsh: |
               $sourceBranch = $env:BUILD_SOURCEBRANCH
-              if ($sourceBranch -notmatch '^refs/tags/v[\d]+\.[\d]+\.[\d]+([-+][a-zA-Z0-9.\-]+)?$') {
+              if ($sourceBranch -notmatch '^refs/tags/v[\d]+\.[\d]+\.[\d]+([-+][a-zA-Z0-9.-]+)?$') {
                 Write-Error "Unexpected BUILD_SOURCEBRANCH format: '$sourceBranch'"
                 exit 1
               }
