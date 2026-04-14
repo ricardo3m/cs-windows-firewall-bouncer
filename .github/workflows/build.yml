@@ -68,7 +68,7 @@ jobs:
         - name: Publish self-contained
           shell: powershell
           run: |
-            msbuild ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer.sln -t:cs-windows-firewall-bouncer:Publish -property:Configuration=Release -property:Platform=x64 -property:RuntimeIdentifier=win-x64 -property:SelfContained=true -property:PublishSingleFile=true -property:PublishDir=${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer\\publish
+            dotnet publish ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer\\cs-windows-firewall-bouncer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer\\publish
         - name: Run tests
           shell: powershell
           run: |
