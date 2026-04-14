@@ -58,6 +58,10 @@ jobs:
           shell: powershell
           run: |
             msbuild ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer.sln -t:cs-windows-firewall-bouncer:rebuild -property:Configuration=Release
+        - name: Publish self-contained
+          shell: powershell
+          run: |
+            msbuild ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer.sln -t:cs-windows-firewall-bouncer:Publish -property:Configuration=Release -property:RuntimeIdentifier=win-x64 -property:SelfContained=true -property:PublishDir=publish
         - name: Run tests
           shell: powershell
           run: |
@@ -66,5 +70,5 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: cs-windows-firewall-bouncer
-            path: cs-windows-firewall-bouncer\bin\**\net8.0-windows\
+            path: cs-windows-firewall-bouncer\publish\
             if-no-files-found: error
