@@ -32,7 +32,7 @@ The bouncer reads its configuration from `C:\ProgramData\CrowdSec\config\bouncer
 | `log_dir` | string | `C:\ProgramData\CrowdSec\log` | Directory for log files (when `log_media=file`) |
 | `log_level` | string | `info` | Log verbosity: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
 | `fw_profiles` | list | current profile | Windows Firewall profiles to apply rules to: `domain`, `private`, `public` |
-| `batch_size` | int | `1000` | Maximum number of IPs per Windows Firewall rule |
+| `batch_size` | int | `10000` | Maximum number of IPs per Windows Firewall rule |
 
 Example:
 
@@ -43,7 +43,7 @@ update_frequency: 10
 log_media: file
 log_dir: C:\ProgramData\CrowdSec\log\
 log_level: info
-batch_size: 1000
+batch_size: 10000
 ```
 
 # Building from Source
