@@ -5,7 +5,7 @@ using System.IO;
 
 namespace bouncer_register_custom_action
 {
-    public class CustomActions
+    public static class CustomActions
     {
         private static string registerBouncer(string bouncerPrefix)
         {
@@ -13,7 +13,7 @@ namespace bouncer_register_custom_action
             Process p = new Process();
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
-            p.StartInfo.FileName = "C:\\Program Files\\CrowdSec\\cscli.exe";
+            p.StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "CrowdSec", "cscli.exe");
             p.StartInfo.Arguments = string.Format("-oraw bouncers add {0}{1}", bouncerPrefix, suffix);
             p.StartInfo.CreateNoWindow = true;
             p.Start();
@@ -26,7 +26,7 @@ namespace bouncer_register_custom_action
             }
             if (p.ExitCode != 0)
             {
-                throw new Exception(string.Format("cscli.exe exited with code {0}. Output: {1}", p.ExitCode, output));
+                throw new InvalidOperationException(string.Format("cscli.exe exited with code {0}. Output: {1}", p.ExitCode, output));
             }
             return output;
         }
