@@ -73,7 +73,7 @@ namespace Api
             }
             catch (Exception ex)
             {
-                Logger.Error("Could not get decisions: {0}", ex.Message);
+                Logger.Error(ex, "Could not get decisions");
                 return null;
             }
             if (decisions == null)

@@ -29,7 +29,7 @@ namespace Manager
 
             if (!firewall.IsEnabled())
             {
-                throw new Exception("Firewall is not enabled for the current profile, the bouncer won't work.");
+                throw new InvalidOperationException("Firewall is not enabled for the current profile, the bouncer won't work.");
             }
             Logger.Debug("Firewall is enabled for profile {0}", firewall.GetCurrentProfile());
 
@@ -77,7 +77,7 @@ namespace Manager
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error("Unexpected error in decisions loop, will retry: {0}", ex.Message);
+                        Logger.Error(ex, "Unexpected error in decisions loop, will retry");
                         try { await Task.Delay(intervalms, ct); } catch (OperationCanceledException) { break; }
                     }
                 }
@@ -98,7 +98,7 @@ namespace Manager
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Unexpected error applying firewall rules: {0}", ex.Message);
+                    Logger.Error(ex, "Unexpected error applying firewall rules");
                 }
             }
         }

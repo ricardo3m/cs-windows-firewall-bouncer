@@ -42,8 +42,8 @@ namespace cs_windows_firewall_bouncer
             Logger.Debug("Onstop service");
             cts?.Cancel();
             try { runTask?.Wait(TimeSpan.FromSeconds(10)); }
-            catch (AggregateException ex) { Logger.Debug("Run task faulted during stop: {0}", ex.InnerException?.Message ?? ex.Message); }
-            catch (Exception ex) { Logger.Debug("Run task exception during stop: {0}", ex.Message); }
+            catch (AggregateException ex) { Logger.Debug(ex, "Run task faulted during stop"); }
+            catch (Exception ex) { Logger.Debug(ex, "Run task exception during stop"); }
             cts?.Dispose();
             try
             {
@@ -51,7 +51,7 @@ namespace cs_windows_firewall_bouncer
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed to clean up firewall rules during stop: {0}", ex.Message);
+                Logger.Error(ex, "Failed to clean up firewall rules during stop");
             }
             Logger.Debug("Onstop service end");
         }

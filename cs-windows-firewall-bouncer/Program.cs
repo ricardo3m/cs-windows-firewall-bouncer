@@ -131,7 +131,7 @@ namespace cs_windows_firewall_bouncer
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Failed to delete firewall rules: {0}", ex.Message);
+                    Logger.Error(ex, "Failed to delete firewall rules");
                 }
                 return;
             }
@@ -159,7 +159,7 @@ namespace cs_windows_firewall_bouncer
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Exception while starting service: {0}", ex.Message);
+                    Logger.Error(ex, "Exception while starting service");
                 }
             }
             else
@@ -174,7 +174,7 @@ namespace cs_windows_firewall_bouncer
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Failed to clean up firewall rules: {0}", ex.Message);
+                    Logger.Error(ex, "Failed to clean up firewall rules");
                 }
             }
             consoleCts?.Dispose();
