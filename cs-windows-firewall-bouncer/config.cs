@@ -38,6 +38,9 @@ namespace Cfg
                 config = deserializer.Deserialize<Config>(reader.ReadToEnd());
             }
 
+            if (config == null)
+                throw new ArgumentException("Configuration file is empty or invalid");
+
             if (string.IsNullOrWhiteSpace(config.ApiEndpoint))
                 throw new ArgumentException("api_endpoint must be set in configuration");
             if (string.IsNullOrWhiteSpace(config.ApiKey))

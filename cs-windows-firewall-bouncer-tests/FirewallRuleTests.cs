@@ -168,7 +168,7 @@ namespace Tests
         public void GetName_StartsWithCrowdsecBlocklist()
         {
             var rule = new FirewallRule();
-            Assert.StartsWith("crowdsec-blocklist", rule.GetName());
+            Assert.StartsWith("crowdsec-blocklist-", rule.GetName());
         }
     }
 }

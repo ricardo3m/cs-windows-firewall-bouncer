@@ -22,7 +22,7 @@ namespace Fw
         public FirewallRule(int capacity = DefaultBatchSize)
         {
             Capacity = capacity > 0 ? capacity : DefaultBatchSize;
-            ruleName = "crowdsec-blocklist" + Guid.NewGuid().ToString();
+            ruleName = "crowdsec-blocklist-" + Guid.NewGuid().ToString();
             stale = false;
         }
 

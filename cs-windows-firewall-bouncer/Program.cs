@@ -28,7 +28,7 @@ namespace cs_windows_firewall_bouncer
             public bool Trace { get; set; }
         }
 
-        private static NLog.LogLevel GetLogLevel(string name) => name switch
+        private static NLog.LogLevel GetLogLevel(string name) => name.ToLowerInvariant() switch
         {
             "trace" => NLog.LogLevel.Trace,
             "debug" => NLog.LogLevel.Debug,

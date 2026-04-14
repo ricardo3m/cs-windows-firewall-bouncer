@@ -113,6 +113,12 @@ update_frequency: -1
         }
 
         [Fact]
+        public void EmptyConfig_Throws()
+        {
+            Assert.Throws<System.ArgumentException>(() => LoadFromYaml(""));
+        }
+
+        [Fact]
         public void ZeroUpdateFrequency_IsAllowed()
         {
             var config = LoadFromYaml(@"
