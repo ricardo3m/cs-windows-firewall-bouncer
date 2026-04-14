@@ -83,11 +83,13 @@ stages:
               --user $(CodeSigningUser) --secret '$(CodeSigningPassword)'
             displayName: "Sign bundle"
           - pwsh: |
-              $build_version=("$(Build.SourceBranch)".Split('/')[2].Substring(1))
+              $build_version=($env:BUILD_SOURCEBRANCH.Split('/')[2].Substring(1))
               .\make_choco.ps1
               Write-Host  "##vso[task.setvariable variable=BuildVersion;isOutput=true]$build_version"
             displayName: "Build chocolatey package"
             name: "chocoBuild"
+            env:
+              BUILD_SOURCEBRANCH: $(Build.SourceBranch)
           - task: PublishBuildArtifacts@1
             inputs:
               PathtoPublish: '$(Build.Repository.LocalPath)\\cs-windows-firewall-installer-bundle\\bin\\Release\\cs_windows_firewall_installer_bundle.exe'
