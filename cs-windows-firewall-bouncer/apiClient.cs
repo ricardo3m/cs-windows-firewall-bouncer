@@ -58,8 +58,12 @@ namespace Api
                 var uri = apiEndpoint + "v1/decisions/stream?startup=" + startup.ToString().ToLower() + "&scopes=Ip,Range";
                 Logger.Trace("requesting {0}", uri);
                 var response = await client.GetAsync(uri, ct);
-                response.EnsureSuccessStatusCode();
                 var body = await response.Content.ReadAsStringAsync(ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Error("LAPI returned HTTP {0}: {1}", (int)response.StatusCode, body);
+                    return null;
+                }
                 Logger.Trace("LAPI response: {0}", body);
                 decisions = JsonSerializer.Deserialize<DecisionStreamResponse>(body, JsonOptions);
             }

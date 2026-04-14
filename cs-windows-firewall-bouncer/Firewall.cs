@@ -1,8 +1,8 @@
 ﻿using System;
-using NetFwTypeLib;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Linq;
+using NetFwTypeLib;
 
 using Api;
 
@@ -147,7 +147,7 @@ namespace Fw
                 rule = policy.Rules.Item(name);
                 return rule;
             }
-            catch (Exception ex)
+            catch (COMException ex)
             {
                 Logger.Debug("Could not find rule {0}: {1}", name, ex.Message);
             }
@@ -274,6 +274,7 @@ namespace Fw
             rule.Name = name;
             rule.Description = "CrowdSec Managed rule";
             rule.Enabled = false;
+            rule.Direction = NET_FW_RULE_DIRECTION_.NET_FW_RULE_DIR_IN;
             rule.Profiles = profiles;
             rule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
             policy.Rules.Add(rule);

@@ -163,6 +163,7 @@ namespace cs_windows_firewall_bouncer
                 Firewall firewall = new(null);
                 Logger.Info("Deleted all firewall rules.");
             }
+            consoleCts?.Dispose();
         }
     }
 }
