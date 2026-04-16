@@ -100,7 +100,7 @@ namespace Fw
                     profiles |= profilesDict[p];
                 }
             }
-            DeleteAllRules();
+            DeleteAllPolicyRules();
         }
 
         public bool IsEnabled()
@@ -128,6 +128,13 @@ namespace Fw
 
         public void DeleteAllRules()
         {
+            DeleteAllPolicyRules();
+            rulesBucket.Clear();
+            ipIndex.Clear();
+        }
+
+        private void DeleteAllPolicyRules()
+        {
             var toDelete = policy.Rules.Cast<INetFwRule>()
                 .Where(r => r.Name.StartsWith("crowdsec-blocklist"))
                 .Select(r => r.Name)
@@ -144,8 +151,6 @@ namespace Fw
                     Logger.Warn(ex, "Could not delete rule {0}", name);
                 }
             }
-            rulesBucket.Clear();
-            ipIndex.Clear();
         }
 
         private INetFwRule getRule(string name)

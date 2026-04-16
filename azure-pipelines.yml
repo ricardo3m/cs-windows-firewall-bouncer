@@ -84,11 +84,11 @@ stages:
             displayName: "Sign bundle"
           - pwsh: |
               $sourceBranch = $env:BUILD_SOURCEBRANCH
-              if ($sourceBranch -notmatch '^refs/tags/v[\d]+\.[\d]+\.[\d]+([-+][a-zA-Z0-9.-]+)?$') {
+              if ($sourceBranch -notmatch '^refs/tags/v(?<version>[\d]+\.[\d]+\.[\d]+([-+][a-zA-Z0-9.-]+)?)$') {
                 Write-Error "Unexpected BUILD_SOURCEBRANCH format: '$sourceBranch'"
                 exit 1
               }
-              $build_version=($sourceBranch.Split('/')[2].Substring(1))
+              $build_version = $Matches['version']
               .\make_choco.ps1
               Write-Host  "##vso[task.setvariable variable=BuildVersion;isOutput=true]$build_version"
             displayName: "Build chocolatey package"
