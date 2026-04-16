@@ -20,13 +20,13 @@ namespace bouncer_register_custom_action
             p.StartInfo.Arguments = string.Format("-oraw bouncers add {0}{1}", bouncerPrefix, suffix);
             p.StartInfo.CreateNoWindow = true;
             p.Start();
-            string output = p.StandardOutput.ReadToEnd();
             bool exited = p.WaitForExit(30000);
             if (!exited)
             {
                 p.Kill();
                 throw new TimeoutException("cscli.exe did not finish within 30 seconds");
             }
+            string output = p.StandardOutput.ReadToEnd().Trim();
             if (p.ExitCode != 0)
             {
                 throw new InvalidOperationException(string.Format("cscli.exe exited with code {0}. Output: {1}", p.ExitCode, output));
@@ -50,8 +50,6 @@ namespace bouncer_register_custom_action
         [CustomAction]
         public static ActionResult RegisterBouncer(Session session)
         {
-            string bouncerPrefix;
-            string bouncerConfigPath;
             session.Log("Begin bouncer registration custom action");
             
             if (session.CustomActionData == null)
@@ -60,21 +58,13 @@ namespace bouncer_register_custom_action
                 return ActionResult.Failure;
             }
 
-            try
+            if (!session.CustomActionData.TryGetValue("bouncerPrefix", out string bouncerPrefix))
             {
-                bouncerPrefix = session.CustomActionData["bouncerPrefix"];
-            }
-            catch (Exception)
-            {
-                session.Log("missing bouncerSuffix param, exiting.");
+                session.Log("missing bouncerPrefix param, exiting.");
                 return ActionResult.Failure;
             }
 
-            try
-            {
-                bouncerConfigPath = session.CustomActionData["bouncerConfigPath"];
-            }
-            catch (Exception)
+            if (!session.CustomActionData.TryGetValue("bouncerConfigPath", out string bouncerConfigPath))
             {
                 session.Log("missing bouncerConfigPath param, exiting.");
                 return ActionResult.Failure;
