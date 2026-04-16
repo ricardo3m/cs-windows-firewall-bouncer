@@ -47,7 +47,7 @@ namespace cs_windows_firewall_bouncer
             cts?.Dispose();
             try
             {
-                Firewall firewall = new(null);
+                new Firewall(null);
             }
             catch (Exception ex)
             {
