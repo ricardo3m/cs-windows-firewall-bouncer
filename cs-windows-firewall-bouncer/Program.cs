@@ -109,7 +109,7 @@ namespace cs_windows_firewall_bouncer
             await mgr.Run(token);
             try
             {
-                Firewall firewall = new(null);
+                new Firewall(null);
                 logger.Info("Deleted all firewall rules.");
             }
             catch (Exception ex)
@@ -165,7 +165,7 @@ namespace cs_windows_firewall_bouncer
             {
                 try
                 {
-                    Firewall firewall = new(null);
+                    new Firewall(null);
                     Logger.Info("Deleted all firewall rules.");
                 }
                 catch (Exception ex)
