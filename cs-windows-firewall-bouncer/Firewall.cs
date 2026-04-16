@@ -212,9 +212,9 @@ namespace Fw
             }
         }
 
-        public void UpdateRule(DecisionStreamResponse decisions)
+        private void ProcessDeletedDecisions(List<Decision> deleted)
         {
-            foreach (var decision in decisions.Deleted)
+            foreach (var decision in deleted)
             {
                 if (decision == null || string.IsNullOrEmpty(decision.value))
                 {
@@ -231,8 +231,11 @@ namespace Fw
                     ipIndex.Remove(decision.value);
                 }
             }
+        }
 
-            foreach (var decision in decisions.New)
+        private void ProcessNewDecisions(List<Decision> newDecisions)
+        {
+            foreach (var decision in newDecisions)
             {
                 if (decision == null || string.IsNullOrEmpty(decision.value))
                 {
@@ -258,7 +261,10 @@ namespace Fw
                 bucket.AddIP(decision.value);
                 ipIndex[decision.value] = bucket;
             }
+        }
 
+        private void FlushStaleRules()
+        {
             List<FirewallRule> toDelete = new();
             foreach (var rule in rulesBucket)
             {
@@ -297,6 +303,13 @@ namespace Fw
             {
                 rulesBucket.Remove(fwRule);
             }
+        }
+
+        public void UpdateRule(DecisionStreamResponse decisions)
+        {
+            ProcessDeletedDecisions(decisions.Deleted);
+            ProcessNewDecisions(decisions.New);
+            FlushStaleRules();
             LogIndexState();
         }
 
