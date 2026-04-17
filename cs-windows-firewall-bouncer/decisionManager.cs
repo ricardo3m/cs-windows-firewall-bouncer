@@ -9,12 +9,13 @@ using Fw;
 
 namespace Manager
 {
-    public class DecisionsManager
+    public class DecisionsManager : IDisposable
     {
         private readonly ApiClient apiClient;
         private readonly Firewall firewall;
         private readonly int interval;
         private readonly Channel<DecisionStreamResponse> decisionsChannel;
+        private bool disposed = false;
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         public DecisionsManager(BouncerConfig config)
@@ -107,6 +108,15 @@ namespace Manager
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 Logger.Debug("Consumer stopped due to cancellation");
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                firewall.Dispose();
             }
         }
     }

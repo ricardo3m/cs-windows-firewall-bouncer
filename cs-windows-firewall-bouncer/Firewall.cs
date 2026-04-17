@@ -10,7 +10,7 @@ namespace Fw
 {
     public class FirewallRule
     {
-        private const int DefaultBatchSize = 10000;
+        private const int DefaultBatchSize = 1000;
         public int Capacity { get; }
         public int Length => content.Count;
         private readonly HashSet<string> content = new();
@@ -67,9 +67,9 @@ namespace Fw
         }
     }
 
-    public class Firewall
+    public class Firewall : IDisposable
     {
-        private const int DefaultBatchSize = 10000;
+        private const int DefaultBatchSize = 1000;
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly INetFwMgr fwManager;
@@ -80,9 +80,7 @@ namespace Fw
         private readonly int bucketCapacity;
 
         private readonly Dictionary<string, int> profilesDict = new Dictionary<string, int> { { "domain", 1 }, { "private", 2 }, { "public", 4 } };
-
-
-
+        private bool disposed = false;
         public Firewall(List<string> fwprofiles, int capacity = DefaultBatchSize)
         {
             bucketCapacity = capacity > 0 ? capacity : DefaultBatchSize;
@@ -231,10 +229,11 @@ namespace Fw
                     Logger.Trace("was not able to find a bucket for deleting {0}", decision.value);
                     continue;
                 }
-                if (bucket.RemoveIP(decision.value))
+                if (!bucket.RemoveIP(decision.value))
                 {
-                    ipIndex.Remove(decision.value);
+                    Logger.Warn("IP {0} was in index but not in bucket; removing stale index entry", decision.value);
                 }
+                ipIndex.Remove(decision.value);
             }
         }
 
@@ -334,6 +333,16 @@ namespace Fw
             rule.Profiles = profiles;
             rule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
             policy.Rules.Add(rule);
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                Marshal.ReleaseComObject(policy);
+                Marshal.ReleaseComObject(fwManager);
+            }
         }
     }
 }

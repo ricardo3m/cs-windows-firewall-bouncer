@@ -21,10 +21,10 @@ namespace Tests
         }
 
         [Fact]
-        public void DefaultCapacity_Is10000()
+        public void DefaultCapacity_Is1000()
         {
             var rule = new FirewallRule();
-            Assert.Equal(10000, rule.Capacity);
+            Assert.Equal(1000, rule.Capacity);
         }
 
         [Fact]
@@ -39,8 +39,8 @@ namespace Tests
         {
             var rule0 = new FirewallRule(0);
             var ruleNeg = new FirewallRule(-5);
-            Assert.Equal(10000, rule0.Capacity);
-            Assert.Equal(10000, ruleNeg.Capacity);
+            Assert.Equal(1000, rule0.Capacity);
+            Assert.Equal(1000, ruleNeg.Capacity);
         }
 
         [Fact]

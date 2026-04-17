@@ -105,11 +105,11 @@ namespace cs_windows_firewall_bouncer
         private static async Task RunInteractiveModeAsync(BouncerConfig config, CancellationToken token, NLog.Logger logger)
         {
             logger.Info("Running in interactive mode");
-            DecisionsManager mgr = new(config);
+            using DecisionsManager mgr = new(config);
             await mgr.Run(token);
             try
             {
-                new Firewall(null);
+                using (new Firewall(null)) { }
                 logger.Info("Deleted all firewall rules.");
             }
             catch (Exception ex)
@@ -165,7 +165,7 @@ namespace cs_windows_firewall_bouncer
             {
                 try
                 {
-                    new Firewall(null);
+                    using (new Firewall(null)) { }
                     Logger.Info("Deleted all firewall rules.");
                 }
                 catch (Exception ex)

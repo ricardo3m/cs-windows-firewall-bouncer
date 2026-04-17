@@ -45,6 +45,8 @@ namespace Cfg
                 throw new ArgumentException("api_endpoint must be set in configuration");
             if (string.IsNullOrWhiteSpace(config.ApiKey))
                 throw new ArgumentException("api_key must be set in configuration");
+            if (config.ApiKey.StartsWith("${") && config.ApiKey.EndsWith("}"))
+                throw new ArgumentException("api_key contains an unexpanded template placeholder; replace it with a real API key");
             if (config.UpdateFrequency < 0)
                 throw new ArgumentException("update_frequency cannot be negative");
         }

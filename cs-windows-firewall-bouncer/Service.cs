@@ -31,8 +31,16 @@ namespace cs_windows_firewall_bouncer
         {
             Logger.Debug("Onstart service");
             cts = new CancellationTokenSource();
-            mgr = new(config);
-            runTask = mgr.Run(cts.Token);
+            try
+            {
+                mgr = new(config);
+                runTask = mgr.Run(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                Logger.Fatal(ex, "Failed to start bouncer");
+                throw;
+            }
             base.OnStart(args);
             Logger.Debug("Onstart service end");
         }
@@ -45,9 +53,10 @@ namespace cs_windows_firewall_bouncer
             catch (AggregateException ex) { Logger.Debug(ex, "Run task faulted during stop"); }
             catch (Exception ex) { Logger.Debug(ex, "Run task exception during stop"); }
             cts?.Dispose();
+            mgr?.Dispose();
             try
             {
-                new Firewall(null);
+                using (new Firewall(null)) { }
             }
             catch (Exception ex)
             {
