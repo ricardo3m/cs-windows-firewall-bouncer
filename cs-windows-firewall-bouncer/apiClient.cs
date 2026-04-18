@@ -67,13 +67,18 @@ namespace Api
                 Logger.Trace("LAPI response: {0}", body);
                 decisions = JsonSerializer.Deserialize<DecisionStreamResponse>(body, JsonOptions);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 throw;
             }
+            catch (OperationCanceledException ex)
+            {
+                Logger.Warn(ex, "HTTP request timed out, will retry");
+                return null;
+            }
             catch (Exception ex)
             {
-                Logger.Error("Could not get decisions: {0}", ex.Message);
+                Logger.Error(ex, "Could not get decisions");
                 return null;
             }
             if (decisions == null)

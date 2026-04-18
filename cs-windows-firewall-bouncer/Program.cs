@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -45,6 +46,78 @@ namespace cs_windows_firewall_bouncer
             consoleCts?.Cancel();
         }
 
+        private static NLog.LogLevel DetermineLogLevel(BouncerConfig config, Options opts)
+        {
+            var logLevel = NLog.LogLevel.Info;
+            if (!string.IsNullOrEmpty(config.config.LogLevel))
+            {
+                logLevel = GetLogLevel(config.config.LogLevel);
+            }
+            if (opts.Debug)
+            {
+                logLevel = NLog.LogLevel.Debug;
+            }
+            if (opts.Trace)
+            {
+                logLevel = NLog.LogLevel.Trace;
+            }
+            return logLevel;
+        }
+
+        private static bool TryConfigureLogging(NLog.Config.LoggingConfiguration loggerConfig, NLog.LogLevel logLevel, BouncerConfig config)
+        {
+            if (config.config.LogMedia == "file" || !Environment.UserInteractive)
+            {
+                if (string.IsNullOrEmpty(config.config.LogDir))
+                {
+                    config.config.LogDir = "C:\\ProgramData\\CrowdSec\\log";
+                }
+                var logfile = new NLog.Targets.FileTarget("logfile") { FileName = System.IO.Path.Combine(config.config.LogDir, "cs_windows_firewall_bouncer.log") };
+                loggerConfig.AddRule(logLevel, NLog.LogLevel.Fatal, logfile);
+            }
+            else if (config.config.LogMedia == "console")
+            {
+                var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
+                loggerConfig.AddRule(logLevel, NLog.LogLevel.Fatal, logconsole);
+            }
+            else
+            {
+                Console.WriteLine("Unknown value for log_media: {0}", config.config.LogMedia);
+                return false;
+            }
+            return true;
+        }
+
+        private static bool ValidateFwProfiles(NLog.Logger logger, List<string> profiles)
+        {
+            foreach (var profile in profiles)
+            {
+                var pos = Array.IndexOf(AllowedFWProfiles, profile);
+                if (pos == -1)
+                {
+                    logger.Fatal("Invalid value {0} for fw_profiles: must be one of 'domain', 'public' or 'private'", profile);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static async Task RunInteractiveModeAsync(BouncerConfig config, CancellationToken token, NLog.Logger logger)
+        {
+            logger.Info("Running in interactive mode");
+            using DecisionsManager mgr = new(config);
+            await mgr.Run(token);
+            try
+            {
+                using (new Firewall(null)) { }
+                logger.Info("Deleted all firewall rules.");
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to clean up firewall rules");
+            }
+        }
+
         static async Task Main(string[] args)
         {
             BouncerConfig config;
@@ -77,76 +150,34 @@ namespace cs_windows_firewall_bouncer
                 return;
             }
 
-
             var loggerConfig = new NLog.Config.LoggingConfiguration();
-            var logLevel = NLog.LogLevel.Info;
-
-            if (!string.IsNullOrEmpty(config.config.LogLevel))
+            var logLevel = DetermineLogLevel(config, opts);
+            if (!TryConfigureLogging(loggerConfig, logLevel, config))
             {
-                logLevel = GetLogLevel(config.config.LogLevel);
-            }
-
-            if (opts.Debug)
-            {
-                logLevel = NLog.LogLevel.Debug;
-            }
-
-            if (opts.Trace)
-            {
-                logLevel = NLog.LogLevel.Trace;
-            }
-
-            if (config.config.LogMedia == "file" || !Environment.UserInteractive)
-            {
-                if (string.IsNullOrEmpty(config.config.LogDir))
-                {
-                    config.config.LogDir = "C:\\ProgramData\\CrowdSec\\log";
-                }
-                var logfile = new NLog.Targets.FileTarget("logfile") { FileName = System.IO.Path.Combine(config.config.LogDir, "cs_windows_firewall_bouncer.log") };
-                loggerConfig.AddRule(logLevel, NLog.LogLevel.Fatal, logfile);
-            }
-            else if (config.config.LogMedia == "console")
-            {
-                var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
-                loggerConfig.AddRule(logLevel, NLog.LogLevel.Fatal, logconsole);
-            }
-            else
-            {
-                Console.WriteLine("Unknown value for log_media: {0}", config.config.LogMedia);
                 return;
             }
 
             NLog.LogManager.Configuration = loggerConfig;
 
-
             NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
-
 
             if (opts.RemoveAll)
             {
                 try
                 {
-                    Firewall firewall = new(null);
+                    using (new Firewall(null)) { }
                     Logger.Info("Deleted all firewall rules.");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Failed to delete firewall rules: {0}", ex.Message);
+                    Logger.Error(ex, "Failed to delete firewall rules");
                 }
                 return;
             }
 
-            if (config.config.FwProfiles != null)
+            if (config.config.FwProfiles != null && !ValidateFwProfiles(Logger, config.config.FwProfiles))
             {
-                foreach (var profile in config.config.FwProfiles)
-                {
-                    var pos = Array.IndexOf(AllowedFWProfiles, profile);
-                    if (pos == -1)
-                    {
-                        Logger.Fatal("Invalid value {0} for fw_profiles: must be one of 'domain', 'public' or 'private'", profile);
-                        return;
-                    }
-                }
+                return;
             }
 
             if (!Environment.UserInteractive)
@@ -159,23 +190,12 @@ namespace cs_windows_firewall_bouncer
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("Exception while starting service: {0}", ex.Message);
+                    Logger.Error(ex, "Exception while starting service");
                 }
             }
             else
             {
-                Logger.Info("Running in interactive mode");
-                DecisionsManager mgr = new(config);
-                await mgr.Run(consoleCts.Token);
-                try
-                {
-                    Firewall firewall = new(null);
-                    Logger.Info("Deleted all firewall rules.");
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error("Failed to clean up firewall rules: {0}", ex.Message);
-                }
+                await RunInteractiveModeAsync(config, consoleCts.Token, Logger);
             }
             consoleCts?.Dispose();
         }
