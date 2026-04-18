@@ -8,6 +8,8 @@ on:
 jobs:
     build:
       runs-on: windows-latest
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       steps:
         - name: setup dotnet
           uses: actions/setup-dotnet@v4
@@ -44,7 +46,7 @@ jobs:
             dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
         - run: "nuget restore ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer.sln"
         - name: SonarCloud begin
-          if: ${{ github.actor != 'dependabot[bot]' && secrets.SONAR_TOKEN != '' }}
+          if: ${{ github.actor != 'dependabot[bot]' && env.SONAR_TOKEN != '' }}
           continue-on-error: true
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -58,7 +60,7 @@ jobs:
           run: |
             msbuild ${env:GITHUB_WORKSPACE}\\cs-windows-firewall-bouncer.sln -t:cs-windows-firewall-bouncer:rebuild -property:Configuration=Release
         - name: SonarCloud end
-          if: ${{ github.actor != 'dependabot[bot]' && secrets.SONAR_TOKEN != '' }}
+          if: ${{ github.actor != 'dependabot[bot]' && env.SONAR_TOKEN != '' }}
           continue-on-error: true
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
