@@ -15,7 +15,10 @@ namespace Manager
         private readonly Firewall firewall;
         private readonly int interval;
         private readonly Channel<DecisionStreamResponse> decisionsChannel;
+        private readonly EventWaitHandle refreshEvent;
         private bool disposed = false;
+
+        public const string RefreshEventName = @"Global\cs-windows-firewall-bouncer-refresh";
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         public DecisionsManager(BouncerConfig config)
@@ -40,6 +43,8 @@ namespace Manager
                 SingleReader = true,
                 FullMode = BoundedChannelFullMode.Wait
             });
+
+            refreshEvent = new EventWaitHandle(false, EventResetMode.AutoReset, RefreshEventName);
         }
 
         public async Task Run(CancellationToken ct = default)
@@ -70,7 +75,10 @@ namespace Manager
                             }
                             await decisionsChannel.Writer.WriteAsync(decisions, ct);
                         }
-                        await Task.Delay(intervalms, ct);
+                        // Wait for either the update interval, a force-refresh signal, or cancellation.
+                        await Task.Run(() => WaitHandle.WaitAny(
+                            new WaitHandle[] { refreshEvent, ct.WaitHandle }, intervalms),
+                            CancellationToken.None);
                     }
                     catch (OperationCanceledException)
                     {
@@ -79,7 +87,9 @@ namespace Manager
                     catch (Exception ex)
                     {
                         Logger.Error(ex, "Unexpected error in decisions loop, will retry");
-                        try { await Task.Delay(intervalms, ct); } catch (OperationCanceledException) { break; }
+                        await Task.Run(() => WaitHandle.WaitAny(
+                            new WaitHandle[] { refreshEvent, ct.WaitHandle }, intervalms),
+                            CancellationToken.None);
                     }
                 }
             }
@@ -117,6 +127,7 @@ namespace Manager
             {
                 disposed = true;
                 firewall.Dispose();
+                refreshEvent.Dispose();
             }
         }
     }
