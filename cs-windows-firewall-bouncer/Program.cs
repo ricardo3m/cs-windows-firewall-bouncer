@@ -8,7 +8,7 @@ using Fw;
 using Cfg;
 using Manager;
 
-namespace cs_windows_firewall_bouncer
+namespace CS_Windows_Firewall_2026
 {
     class Program
     {
@@ -17,7 +17,7 @@ namespace cs_windows_firewall_bouncer
 
         public class Options
         {
-            [Option('c', "config", Required = false, Default = "C:\\ProgramData\\CrowdSec\\config\\bouncers\\cs-windows-firewall-bouncer.yaml", HelpText = "Path to the config file")]
+            [Option('c', "config", Required = false, Default = "C:\\ProgramData\\CrowdSec\\config\\bouncers\\CS_Windows_Firewall_2026.yaml", HelpText = "Path to the config file")]
             public string Config { get; set; }
             [Option('r', "remove", Required = false, Default = false, HelpText = "Delete all crowdsec firewall rules and exit")]
             public bool RemoveAll { get; set; }
@@ -102,7 +102,7 @@ namespace cs_windows_firewall_bouncer
                 {
                     config.config.LogDir = "C:\\ProgramData\\CrowdSec\\log";
                 }
-                var logfile = new NLog.Targets.FileTarget("logfile") { FileName = System.IO.Path.Combine(config.config.LogDir, "cs_windows_firewall_bouncer.log") };
+                var logfile = new NLog.Targets.FileTarget("logfile") { FileName = System.IO.Path.Combine(config.config.LogDir, "CS_Windows_Firewall_2026.log") };
                 loggerConfig.AddRule(logLevel, NLog.LogLevel.Fatal, logfile);
             }
             else if (config.config.LogMedia == "console")

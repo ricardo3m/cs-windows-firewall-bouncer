@@ -46,7 +46,7 @@ namespace Api
             this.apiEndpoint = apiEndpoint.EndsWith('/') ? apiEndpoint : apiEndpoint + '/';
             var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
             client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
-            client.DefaultRequestHeaders.Add("User-Agent", $"cs-windows-fw-bouncer/{version}");
+            client.DefaultRequestHeaders.Add("User-Agent", $"CS_Windows_Firewall_2026/{version}");
         }
 
         public async Task<DecisionStreamResponse> GetDecisions(bool startup, CancellationToken ct = default)

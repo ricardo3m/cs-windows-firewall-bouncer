@@ -7,7 +7,7 @@ using Cfg;
 using Fw;
 using Manager;
 
-namespace cs_windows_firewall_bouncer
+namespace CS_Windows_Firewall_2026
 {
     partial class Service : ServiceBase
     {

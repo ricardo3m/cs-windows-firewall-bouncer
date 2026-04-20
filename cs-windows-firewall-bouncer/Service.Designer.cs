@@ -1,4 +1,4 @@
-﻿namespace cs_windows_firewall_bouncer
+﻿namespace CS_Windows_Firewall_2026
 {
     partial class Service
     {
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            this.ServiceName = "cs-windows-firewall-bouncer";
+            this.ServiceName = "CS_Windows_Firewall_2026";
         }
 
         #endregion
