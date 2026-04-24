@@ -9,12 +9,16 @@ using Fw;
 
 namespace Manager
 {
-    public class DecisionsManager
+    public class DecisionsManager : IDisposable
     {
         private readonly ApiClient apiClient;
         private readonly Firewall firewall;
         private readonly int interval;
         private readonly Channel<DecisionStreamResponse> decisionsChannel;
+        private readonly EventWaitHandle refreshEvent;
+        private bool disposed = false;
+
+        public const string RefreshEventName = @"Global\cs-windows-firewall-bouncer-refresh";
 
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         public DecisionsManager(BouncerConfig config)
@@ -29,7 +33,7 @@ namespace Manager
 
             if (!firewall.IsEnabled())
             {
-                throw new Exception("Firewall is not enabled for the current profile, the bouncer won't work.");
+                throw new InvalidOperationException("Firewall is not enabled for the current profile, the bouncer won't work.");
             }
             Logger.Debug("Firewall is enabled for profile {0}", firewall.GetCurrentProfile());
 
@@ -39,6 +43,8 @@ namespace Manager
                 SingleReader = true,
                 FullMode = BoundedChannelFullMode.Wait
             });
+
+            refreshEvent = new EventWaitHandle(false, EventResetMode.AutoReset, RefreshEventName);
         }
 
         public async Task Run(CancellationToken ct = default)
@@ -69,7 +75,10 @@ namespace Manager
                             }
                             await decisionsChannel.Writer.WriteAsync(decisions, ct);
                         }
-                        await Task.Delay(intervalms, ct);
+                        // Wait for either the update interval, a force-refresh signal, or cancellation.
+                        await Task.Run(() => WaitHandle.WaitAny(
+                            new WaitHandle[] { refreshEvent, ct.WaitHandle }, intervalms),
+                            CancellationToken.None);
                     }
                     catch (OperationCanceledException)
                     {
@@ -77,8 +86,10 @@ namespace Manager
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error("Unexpected error in decisions loop, will retry: {0}", ex.Message);
-                        try { await Task.Delay(intervalms, ct); } catch (OperationCanceledException) { break; }
+                        Logger.Error(ex, "Unexpected error in decisions loop, will retry");
+                        await Task.Run(() => WaitHandle.WaitAny(
+                            new WaitHandle[] { refreshEvent, ct.WaitHandle }, intervalms),
+                            CancellationToken.None);
                     }
                 }
             }
@@ -90,16 +101,33 @@ namespace Manager
 
         private async Task ConsumeAsync(CancellationToken ct)
         {
-            await foreach (var decisions in decisionsChannel.Reader.ReadAllAsync(ct))
+            try
             {
-                try
+                await foreach (var decisions in decisionsChannel.Reader.ReadAllAsync(ct))
                 {
-                    firewall.UpdateRule(decisions);
+                    try
+                    {
+                        firewall.UpdateRule(decisions);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "Unexpected error applying firewall rules");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Logger.Error("Unexpected error applying firewall rules: {0}", ex.Message);
-                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                Logger.Debug("Consumer stopped due to cancellation");
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                firewall.Dispose();
+                refreshEvent.Dispose();
             }
         }
     }

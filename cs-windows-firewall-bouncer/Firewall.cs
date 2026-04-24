@@ -10,7 +10,7 @@ namespace Fw
 {
     public class FirewallRule
     {
-        private const int DefaultBatchSize = 10000;
+        private const int DefaultBatchSize = 1000;
         public int Capacity { get; }
         public int Length => content.Count;
         private readonly HashSet<string> content = new();
@@ -67,9 +67,9 @@ namespace Fw
         }
     }
 
-    public class Firewall
+    public class Firewall : IDisposable
     {
-        private const int DefaultBatchSize = 10000;
+        private const int DefaultBatchSize = 1000;
         private readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly INetFwMgr fwManager;
@@ -80,9 +80,7 @@ namespace Fw
         private readonly int bucketCapacity;
 
         private readonly Dictionary<string, int> profilesDict = new Dictionary<string, int> { { "domain", 1 }, { "private", 2 }, { "public", 4 } };
-
-
-
+        private bool disposed = false;
         public Firewall(List<string> fwprofiles, int capacity = DefaultBatchSize)
         {
             bucketCapacity = capacity > 0 ? capacity : DefaultBatchSize;
@@ -100,7 +98,7 @@ namespace Fw
                     profiles |= profilesDict[p];
                 }
             }
-            DeleteAllRules();
+            DeleteAllPolicyRules();
         }
 
         public bool IsEnabled()
@@ -122,20 +120,23 @@ namespace Fw
             }
             catch (COMException ex)
             {
-                Logger.Warn("Could not delete FW rule {0}: {1}", name, ex.Message);
+                Logger.Warn(ex, "Could not delete FW rule {0}", name);
             }
         }
 
         public void DeleteAllRules()
         {
-            var toDelete = new List<string>();
-            foreach (INetFwRule rule in policy.Rules)
-            {
-                if (rule.Name.StartsWith("crowdsec-blocklist"))
-                {
-                    toDelete.Add(rule.Name);
-                }
-            }
+            DeleteAllPolicyRules();
+            rulesBucket.Clear();
+            ipIndex.Clear();
+        }
+
+        private void DeleteAllPolicyRules()
+        {
+            var toDelete = policy.Rules.Cast<INetFwRule>()
+                .Where(r => r.Name.StartsWith("crowdsec-blocklist"))
+                .Select(r => r.Name)
+                .ToList();
             foreach (var name in toDelete)
             {
                 Logger.Debug("Deleting rule {0}", name);
@@ -145,11 +146,9 @@ namespace Fw
                 }
                 catch (COMException ex)
                 {
-                    Logger.Warn("Could not delete rule {0}: {1}", name, ex.Message);
+                    Logger.Warn(ex, "Could not delete rule {0}", name);
                 }
             }
-            rulesBucket.Clear();
-            ipIndex.Clear();
         }
 
         private INetFwRule getRule(string name)
@@ -163,7 +162,7 @@ namespace Fw
             }
             catch (COMException ex)
             {
-                Logger.Debug("Could not find rule {0}: {1}", name, ex.Message);
+                Logger.Debug(ex, "Could not find rule {0}", name);
             }
             return null;
         }
@@ -216,9 +215,9 @@ namespace Fw
             }
         }
 
-        public void UpdateRule(DecisionStreamResponse decisions)
+        private void ProcessDeletedDecisions(List<Decision> deleted)
         {
-            foreach (var decision in decisions.Deleted)
+            foreach (var decision in deleted)
             {
                 if (decision == null || string.IsNullOrEmpty(decision.value))
                 {
@@ -230,13 +229,17 @@ namespace Fw
                     Logger.Trace("was not able to find a bucket for deleting {0}", decision.value);
                     continue;
                 }
-                if (bucket.RemoveIP(decision.value))
+                if (!bucket.RemoveIP(decision.value))
                 {
-                    ipIndex.Remove(decision.value);
+                    Logger.Warn("IP {0} was in index but not in bucket; removing stale index entry", decision.value);
                 }
+                ipIndex.Remove(decision.value);
             }
+        }
 
-            foreach (var decision in decisions.New)
+        private void ProcessNewDecisions(List<Decision> newDecisions)
+        {
+            foreach (var decision in newDecisions)
             {
                 if (decision == null || string.IsNullOrEmpty(decision.value))
                 {
@@ -262,7 +265,10 @@ namespace Fw
                 bucket.AddIP(decision.value);
                 ipIndex[decision.value] = bucket;
             }
+        }
 
+        private void FlushStaleRules()
+        {
             List<FirewallRule> toDelete = new();
             foreach (var rule in rulesBucket)
             {
@@ -293,7 +299,7 @@ namespace Fw
                     }
                     catch (COMException ex)
                     {
-                        Logger.Error("Failed to update firewall rule {0}: {1}", rule.GetName(), ex.Message);
+                        Logger.Error(ex, "Failed to update firewall rule {0}", rule.GetName());
                     }
                 }
             }
@@ -301,6 +307,13 @@ namespace Fw
             {
                 rulesBucket.Remove(fwRule);
             }
+        }
+
+        public void UpdateRule(DecisionStreamResponse decisions)
+        {
+            ProcessDeletedDecisions(decisions.Deleted);
+            ProcessNewDecisions(decisions.New);
+            FlushStaleRules();
             LogIndexState();
         }
 
@@ -320,6 +333,16 @@ namespace Fw
             rule.Profiles = profiles;
             rule.Action = NET_FW_ACTION_.NET_FW_ACTION_BLOCK;
             policy.Rules.Add(rule);
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                Marshal.ReleaseComObject(policy);
+                Marshal.ReleaseComObject(fwManager);
+            }
         }
     }
 }

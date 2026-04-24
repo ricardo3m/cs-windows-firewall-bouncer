@@ -119,6 +119,15 @@ update_frequency: -1
         }
 
         [Fact]
+        public void UnexpandedApiKey_Throws()
+        {
+            Assert.Throws<System.ArgumentException>(() => LoadFromYaml(@"
+api_endpoint: http://localhost:8080
+api_key: ${API_KEY}
+"));
+        }
+
+        [Fact]
         public void ZeroUpdateFrequency_IsAllowed()
         {
             var config = LoadFromYaml(@"

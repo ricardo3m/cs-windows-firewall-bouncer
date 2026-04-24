@@ -46,6 +46,16 @@ log_level: info
 batch_size: 10000
 ```
 
+# Force-refresh decisions
+
+To immediately trigger a LAPI poll without waiting for the next scheduled interval, run this from an elevated PowerShell prompt:
+
+```powershell
+([System.Threading.EventWaitHandle]::OpenExisting('Global\cs-windows-firewall-bouncer-refresh')).Set()
+```
+
+This signals the named event that the bouncer watches alongside its polling timer, waking the next poll instantly.
+
 # Building from Source
 
 **Prerequisites:**
