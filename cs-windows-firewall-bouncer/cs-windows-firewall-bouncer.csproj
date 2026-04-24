@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>cs_windows_firewall_bouncer_2026</AssemblyName>
     <RootNamespace>cs_windows_firewall_bouncer</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64</Platforms>
